@@ -33,9 +33,9 @@
   
   # Install runpod client + requests
   RUN pip install runpod requests
-  RUN pip install -U torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-  RUN pip install -U packaging wheel ninja setuptools
-  RUN pip install --no-build-isolation git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git
+  # RUN pip install -U torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+  # RUN pip install -U packaging wheel ninja setuptools
+  # RUN pip install --no-build-isolation git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git
 
   
   # Add extra config
