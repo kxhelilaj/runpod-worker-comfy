@@ -11,6 +11,8 @@
         }
     },
     "cnr_custom_nodes": {
+        "comfyui-multigpu": "1.7.3",
+        "ComfyUI-GGUF": "1.1.1",
         "comfyui-videohelpersuite": "1.6.1",
         "comfyui-kjnodes": "1.1.2"
     },
@@ -63,6 +65,7 @@
         "fonttools==4.58.5": "",
         "frozenlist==1.7.0": "",
         "fsspec==2025.5.1": "",
+        "gguf==0.17.1": "",
         "gitdb==4.0.12": "",
         "gitpython==3.1.44": "",
         "greenlet==3.2.3": "",
@@ -119,6 +122,7 @@
         "prettytable==3.16.0": "",
         "prompt-toolkit==3.0.51": "",
         "propcache==0.3.2": "",
+        "protobuf==6.31.1": "",
         "psutil==7.0.0": "",
         "py-cpuinfo==9.0.0": "",
         "pycares==4.9.0": "",
