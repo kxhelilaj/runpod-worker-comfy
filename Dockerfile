@@ -47,9 +47,7 @@ WORKDIR /comfyui
 # This tells it to build for common Ampere & Hopper/Ada architectures (30-series, 40-series, A100, H100).
 
 RUN pip install runpod requests
-RUN pip install --no-cache-dir -U packaging wheel ninja setuptools && \
-    TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0" \
-    pip install --no-cache-dir --no-build-isolation git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git
+RUN pip install --no-cache-dir -U packaging wheel ninja setuptools
 
 # -----------------------------------------------------------------------------
 # Add application code, scripts, and restore custom nodes.
