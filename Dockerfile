@@ -1,7 +1,7 @@
-# Dockerfile for LTX-Video Worker with PRE-BUILT Q8 Kernels (v3 - Correct Path)
+# Dockerfile for LTX-Video Worker with PRE-BUILT Q8 Kernels (v4 - No VENV)
 #
-# This version places the pre-built kernels into the ComfyUI virtual environment,
-# which is the correct location for the runtime to find them.
+# This version acknowledges that comfy-cli installs to the system Python,
+# not a venv, and adjusts all paths accordingly. This is the correct fix.
 #
 
 # -----------------------------------------------------------------------------
@@ -15,7 +15,7 @@ ENV PYTHONUNBUFFERED=1
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
 # -----------------------------------------------------------------------------
-# Install Python 3.11 and core system tools.
+# Install Python 3.11 and core system tools. This is our main environment.
 # -----------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# Install ComfyUI. This creates a virtual environment at /comfyui/venv/
+# Install ComfyUI into the system Python environment.
 # -----------------------------------------------------------------------------
 RUN pip install --no-cache-dir comfy-cli
 
@@ -39,16 +39,16 @@ RUN /usr/bin/yes | comfy --workspace /comfyui install --nvidia
 WORKDIR /comfyui
 
 # -----------------------------------------------------------------------------
-# Install standard Python packages into the ComfyUI venv.
+# Install standard Python packages directly into the system environment.
+# NO venv activation is needed.
 # -----------------------------------------------------------------------------
-RUN . venv/bin/activate && \
-    pip install --no-cache-dir -U runpod requests packaging wheel ninja setuptools
+RUN pip install --no-cache-dir -U runpod requests packaging wheel ninja setuptools
 
 # -----------------------------------------------------------------------------
-# COPY the pre-built Q8-Kernels into the correct ComfyUI VENV site-packages.
-# THIS IS THE KEY FIX.
+# COPY the pre-built Q8-Kernels into the system's site-packages.
+# This path is now correct because we are not using a venv.
 # -----------------------------------------------------------------------------
-COPY q8_kernels_cuda /comfyui/venv/lib/python3.11/site-packages/q8_kernels_cuda
+COPY q8_kernels_cuda /usr/local/lib/python3.11/dist-packages/q8_kernels_cuda
 
 # -----------------------------------------------------------------------------
 # Add application code, scripts, and restore custom nodes.
