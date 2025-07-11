@@ -24,9 +24,9 @@ WORKDIR /comfyui
 # Python dependencies and Q8 kernel compile
 RUN pip install --no-cache-dir runpod requests
 RUN pip install --no-cache-dir -U packaging wheel ninja setuptools
-RUN TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0" \
-    pip install --no-cache-dir --no-build-isolation \
-    git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git@f3066edea210082799ca5a2bbf9ef0321c5dd8fc
+
+COPY q8_kernels_cuda /usr/local/lib/python3.11/dist-packages/q8_kernels_cuda
+
 
 # Copy and restore snapshot
 WORKDIR /
