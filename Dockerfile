@@ -7,9 +7,6 @@
 
 # -----------------------------------------------------------------------------
 # Stage 1: Use a modern CUDA 12.5 base image.
-# NOTE: The Q8-Kernels library requires a host system with NVIDIA drivers
-# compatible with CUDA 12.8+, but the container toolkit can be slightly
-# older. CUDA 12.5.1 is the latest stable release and fully supports this.
 # -----------------------------------------------------------------------------
 FROM nvidia/cuda:12.5.1-cudnn-runtime-ubuntu22.04 AS base
 
@@ -36,45 +33,39 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # -----------------------------------------------------------------------------
 # Install ComfyUI. It will detect the base image's CUDA version.
 # -----------------------------------------------------------------------------
-# Install comfy-cli first.
 RUN pip install --no-cache-dir comfy-cli
 
-# Install ComfyUI. We remove the `--cuda-version` flag to let it automatically
-# use the newer toolkit from our base image. This is more robust.
 RUN /usr/bin/yes | comfy --workspace /comfyui install --nvidia
 
-# Set the working directory for subsequent commands.
 WORKDIR /comfyui
 
 # -----------------------------------------------------------------------------
-# Install all additional Python packages in a SINGLE, CLEAN layer.
-# This solves the "out of space" error by not installing torch twice.
+# Install all additional Python packages, including the Q8 Kernels.
 # -----------------------------------------------------------------------------
+# This is the corrected command.
+# We set TORCH_CUDA_ARCH_LIST to prevent the build script from needing a live GPU.
+# This tells it to build for common Ampere & Hopper/Ada architectures (30-series, 40-series, A100, H100).
+
 RUN pip install runpod requests
 RUN pip install --no-cache-dir -U packaging wheel ninja setuptools && \
+    TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0" \
     pip install --no-cache-dir --no-build-isolation git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git
 
 # -----------------------------------------------------------------------------
 # Add application code, scripts, and restore custom nodes.
 # -----------------------------------------------------------------------------
-# Add extra config for model paths.
 ADD src/extra_model_paths.yaml ./
 
-# Go back to the root for subsequent commands.
 WORKDIR /
 
-# Add application scripts and snapshot definition.
 ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json ./
 ADD snapshot.json /
 RUN chmod +x /start.sh /restore_snapshot.sh
 
-# Restore your custom nodes from the snapshot.
 RUN /restore_snapshot.sh
 
 # -----------------------------------------------------------------------------
 # Final setup and default entrypoint.
 # -----------------------------------------------------------------------------
-# Set the working directory back to root.
 WORKDIR /
-# Default entrypoint for the container.
 CMD ["/start.sh"]
