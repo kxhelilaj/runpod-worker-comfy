@@ -38,15 +38,15 @@ download_model "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve
 
 echo "runpod-worker-comfy: Checking for Q8 kernels..."
 
-if python3 -c "import q8_kernels" 2>/dev/null; then
-    echo "✅ Q8 kernels already installed."
-else
-    echo "⬇️ Installing Q8 kernels at runtime..."
-    TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0" \
-    pip install --no-cache-dir --no-build-isolation \
-        git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git@f3066edea210082799ca5a2bbf9ef0321c5dd8fc || \
-        echo "⚠️  Q8 kernel install failed — continuing without them."
-fi
+# if python3 -c "import q8_kernels" 2>/dev/null; then
+#     echo "✅ Q8 kernels already installed."
+# else
+#     echo "⬇️ Installing Q8 kernels at runtime..."
+#     TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0" \
+#     pip install --no-cache-dir --no-build-isolation \
+#         git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git@f3066edea210082799ca5a2bbf9ef0321c5dd8fc || \
+#         echo "⚠️  Q8 kernel install failed — continuing without them."
+# fi
 
 # -----------------------------------------------------------------------------
 # Start services

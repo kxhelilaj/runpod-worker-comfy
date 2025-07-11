@@ -1,6 +1,7 @@
-# Dockerfile for LTX-Video Worker with PRE-BUILT Q8 Kernels (Python 3.11 Version)
+# Dockerfile for LTX-Video Worker with PRE-BUILT Q8 Kernels (v3 - Correct Path)
 #
-# This Dockerfile matches the Python 3.11 environment where the kernels were compiled.
+# This version places the pre-built kernels into the ComfyUI virtual environment,
+# which is the correct location for the runtime to find them.
 #
 
 # -----------------------------------------------------------------------------
@@ -29,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# Install ComfyUI. It will detect the base image's CUDA version.
+# Install ComfyUI. This creates a virtual environment at /comfyui/venv/
 # -----------------------------------------------------------------------------
 RUN pip install --no-cache-dir comfy-cli
 
@@ -38,17 +39,16 @@ RUN /usr/bin/yes | comfy --workspace /comfyui install --nvidia
 WORKDIR /comfyui
 
 # -----------------------------------------------------------------------------
-# Install standard Python packages.
+# Install standard Python packages into the ComfyUI venv.
 # -----------------------------------------------------------------------------
-RUN pip install runpod requests
-RUN pip install --no-cache-dir -U  packaging wheel ninja setuptools
+RUN . venv/bin/activate && \
+    pip install --no-cache-dir -U runpod requests packaging wheel ninja setuptools
 
 # -----------------------------------------------------------------------------
-# COPY the pre-built Q8-Kernels into the Python 3.11 site-packages.
-# This completely AVOIDS the build error.
+# COPY the pre-built Q8-Kernels into the correct ComfyUI VENV site-packages.
+# THIS IS THE KEY FIX.
 # -----------------------------------------------------------------------------
-# The destination path is now updated for Python 3.11.
-COPY q8_kernels_cuda /usr/local/lib/python3.11/dist-packages/q8_kernels_cuda
+COPY q8_kernels_cuda /comfyui/venv/lib/python3.11/site-packages/q8_kernels_cuda
 
 # -----------------------------------------------------------------------------
 # Add application code, scripts, and restore custom nodes.
