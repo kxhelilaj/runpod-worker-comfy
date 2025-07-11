@@ -33,7 +33,7 @@
   
   # Install runpod client + requests
   RUN pip install runpod requests
-  RRUN pip install --no-cache-dir -U runpod requests packaging wheel ninja setuptools && \
+  RUN pip install --no-cache-dir -U runpod requests packaging wheel ninja setuptools && \
     pip install --no-cache-dir --no-build-isolation git+https://github.com/Lightricks/LTX-Video-Q8-Kernels.git
 
   
