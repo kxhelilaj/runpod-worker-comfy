@@ -2,14 +2,12 @@ import runpod
 from runpod.serverless.utils import rp_upload
 import json
 import urllib.request
-import urllib.parse
 import time
 import os
 import requests
 import base64
 from io import BytesIO
 
-# Config
 COMFY_HOST = "127.0.0.1:8188"
 COMFY_POLLING_INTERVAL_MS = int(os.environ.get("COMFY_POLLING_INTERVAL_MS", 250))
 COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 500))
@@ -24,8 +22,6 @@ def validate_input(job_input):
         except json.JSONDecodeError:
             return None, "Invalid JSON format in input"
     workflow = job_input.get("workflow")
-    if workflow is None:
-        return None, "Missing 'workflow' parameter"
     images = job_input.get("images")
     return {"workflow": workflow, "images": images}, None
 
@@ -71,33 +67,31 @@ def get_history(prompt_id):
     with urllib.request.urlopen(f"http://{COMFY_HOST}/history/{prompt_id}") as response:
         return json.loads(response.read())
 
-def base64_encode(img_path):
-    with open(img_path, "rb") as f:
+def base64_encode_file(path):
+    with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
-def process_output_images(outputs, job_id):
+def process_output_files(outputs, job_id):
     COMFY_OUTPUT_PATH = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
     print(f"\n================ DEBUG: RAW OUTPUTS ================\n")
     print(json.dumps(outputs, indent=2))
     print(f"\n====================================================\n")
-    
+
     output_file_path = None
+    # Also check for gifs (because VHS_VideoCombine returns 'gifs')
     for node_id, node_output in outputs.items():
-        if "images" in node_output:
-            for image in node_output["images"]:
-                output_file_path = os.path.join(COMFY_OUTPUT_PATH, image["subfolder"], image["filename"])
-        if "videos" in node_output:
-            for video in node_output["videos"]:
-                output_file_path = os.path.join(COMFY_OUTPUT_PATH, video["subfolder"], video["filename"])
-    if output_file_path:
-        if os.path.exists(output_file_path):
-            if os.environ.get("BUCKET_ENDPOINT_URL"):
-                return {"status": "success", "video_base64": rp_upload.upload_image(job_id, output_file_path)}
-            else:
-                return {"status": "success", "video_base64": base64_encode(output_file_path)}
+        for key in ["images", "videos", "gifs"]:
+            if key in node_output:
+                for file_info in node_output[key]:
+                    output_file_path = os.path.join(COMFY_OUTPUT_PATH, file_info["subfolder"], file_info["filename"])
+                    print(f"Detected output: {output_file_path}")
+    if output_file_path and os.path.exists(output_file_path):
+        if os.environ.get("BUCKET_ENDPOINT_URL"):
+            return {"status": "success", "video_base64": rp_upload.upload_image(job_id, output_file_path)}
         else:
-            return {"status": "error", "message": f"file does not exist: {output_file_path}"}
-    return {"status": "error", "message": "No images or videos were found in the workflow outputs."}
+            return {"status": "success", "video_base64": base64_encode_file(output_file_path)}
+    else:
+        return {"status": "error", "message": "No images or videos were found in the workflow outputs."}
 
 def handler(job):
     job_input = job["input"]
@@ -116,7 +110,7 @@ def handler(job):
     except Exception as e:
         return {"error": f"Error queuing workflow: {str(e)}"}
 
-    print("runpod-worker-comfy - wait until image generation is complete")
+    print("runpod-worker-comfy - waiting for workflow to complete")
     retries = 0
     while retries < COMFY_POLLING_MAX_RETRIES:
         history = get_history(prompt_id)
@@ -127,7 +121,7 @@ def handler(job):
     else:
         return {"error": "Max retries reached while waiting for image generation"}
 
-    output_result = process_output_images(history[prompt_id].get("outputs"), job["id"])
+    output_result = process_output_files(history[prompt_id].get("outputs"), job["id"])
     if output_result.get("status") != "success":
         raise ValueError(f"Job completed but failed: {output_result}")
     return {**output_result, "refresh_worker": REFRESH_WORKER}
