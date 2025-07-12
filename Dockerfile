@@ -1,72 +1,64 @@
-# ================================================================================
-# Dockerfile for ComfyUI "Wan" GGUF Worker with Snapshot & Runtime Model Support
-# ================================================================================
+# =============================================================================
+# Stage 1: Build base with Python + ComfyUI
+# =============================================================================
+FROM nvidia/cuda:12.8.0-cudnn-runtime-ubuntu22.04 as base
 
-FROM nvidia/cuda:12.5.1-cudnn-runtime-ubuntu22.04 AS base
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_PREFER_BINARY=1 \
+    CMAKE_BUILD_PARALLEL_LEVEL=8
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
-ENV PIP_PREFER_BINARY=1
-ENV CMAKE_BUILD_PARALLEL_LEVEL=8
-
-# ------------------------------------------------------------------------------
-# System Packages & Python
-# ------------------------------------------------------------------------------
+# --- System dependencies ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.11 python3-pip git wget curl aria2 ffmpeg \
-    libgl1 libglib2.0-0 \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip \
-    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    python3.10 python3-pip git wget curl aria2 ffmpeg libgl1 libglib2.0-0 \
+ && ln -sf /usr/bin/python3.10 /usr/bin/python \
+ && ln -sf /usr/bin/pip3 /usr/bin/pip \
+ && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# ------------------------------------------------------------------------------
-# Install ComfyUI + CLI
-# ------------------------------------------------------------------------------
+# --- Python deps ---
 RUN pip install --no-cache-dir comfy-cli
 
-RUN /usr/bin/yes | comfy --workspace /comfyui install --nvidia
+# --- Install ComfyUI ---
+RUN yes | comfy --workspace /comfyui install --nvidia
+WORKDIR /comfyui
+RUN pip install --no-cache-dir runpod requests
+
+# --- Add core scripts and config ---
+WORKDIR /
+ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json ./
+ADD snapshot.json /
+ADD src/extra_model_paths.yaml /comfyui/
+RUN chmod +x /start.sh /restore_snapshot.sh
+
+# --- Restore ComfyUI snapshot to get all custom nodes ---
+RUN /restore_snapshot.sh
+
+# --- Install all node requirements if present ---
+RUN --mount=type=cache,target=/root/.cache/pip \
+  for d in /comfyui/custom_nodes/*; do \
+    [ -f "$d/requirements.txt" ] && pip install -r "$d/requirements.txt"; \
+  done
+
+
+# =============================================================================
+# Stage 2: Download models with aria2
+# =============================================================================
+FROM base as downloader
 
 WORKDIR /comfyui
 
-# ------------------------------------------------------------------------------
-# Install Required Python Dependencies
-# ------------------------------------------------------------------------------
-RUN pip install --no-cache-dir -U runpod requests imageio-ffmpeg
+# RUN mkdir -p models/loras/wan models/vae/nativewan models/unets models/clip/native
 
-# ------------------------------------------------------------------------------
-# Add Your Scripts, Snapshot & Configs
-# ------------------------------------------------------------------------------
-WORKDIR /
+# --- Download model files ---
+RUN /download_models.sh
 
-ADD src/extra_model_paths.yaml /comfyui/
-ADD src/start.sh src/restore_snapshot.sh src/download_models.sh src/rp_handler.py test_input.json ./
-ADD snapshot.json /
+# =============================================================================
+# Stage 3: Final image - lean and ready
+# =============================================================================
+FROM base as final
 
-RUN chmod +x /start.sh /restore_snapshot.sh /download_models.sh
+# Copy models from downloader stage
+COPY --from=downloader /comfyui/models /comfyui/models
 
-# ------------------------------------------------------------------------------
-# Restore custom nodes using snapshot
-# ------------------------------------------------------------------------------
-RUN /restore_snapshot.sh
-
-# ------------------------------------------------------------------------------
-# Install requirements.txt from all /custom_nodes/*/requirements.txt
-# ------------------------------------------------------------------------------
-RUN --mount=type=cache,target=/root/.cache/pip \
-    for dir in /comfyui/custom_nodes/*/; do \
-        if [ -f "${dir}requirements.txt" ]; then \
-            echo "Installing dependencies for $(basename "$dir")..." && \
-            pip install -r "${dir}requirements.txt"; \
-        fi; \
-    done
-
-# ------------------------------------------------------------------------------
-# Download models at runtime via hook
-# ------------------------------------------------------------------------------
-ENV RUNPOD_WORKER_PRELOAD=/download_models.sh
-RUN ./download_models.sh
-
-# ------------------------------------------------------------------------------
-# Entry Point
-# ------------------------------------------------------------------------------
+# Set default startup
 CMD ["/start.sh"]
