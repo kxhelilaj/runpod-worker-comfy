@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ------------------------------------------------------------------------------
 # ComfyUI CLI
 RUN pip install --no-cache-dir comfy-cli
-RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7
+RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia
 
 # ------------------------------------------------------------------------------
 # Base Python packages
