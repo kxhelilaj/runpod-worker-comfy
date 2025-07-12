@@ -64,6 +64,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Download models at runtime via hook
 # ------------------------------------------------------------------------------
 ENV RUNPOD_WORKER_PRELOAD=/download_models.sh
+RUN ./download_models.sh
 
 # ------------------------------------------------------------------------------
 # Entry Point
