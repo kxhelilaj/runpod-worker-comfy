@@ -1,7 +1,7 @@
-# Dockerfile for "Wan" GGUF Worker (Optimized for GitHub Actions)
+# Dockerfile for "Wan" GGUF Worker (v2 - More Robust)
 #
 # This Dockerfile creates a LEAN image. It does NOT download large models.
-# The models will be downloaded at runtime on the RunPod instance via a preload script.
+# It uses a robust loop to install all custom node dependencies and adds ffmpeg.
 #
 
 # =====================================================================================
@@ -14,7 +14,8 @@ ENV PIP_PREFER_BINARY=1
 ENV PYTHONUNBUFFERED=1
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
-# Install Python 3.11 and core system tools, including aria2 for fast downloads.
+# Install Python 3.11 and core system tools.
+# *** FIX 1: Added ffmpeg for VideoHelperSuite ***
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
     python3-pip \
@@ -22,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     aria2 \
+    ffmpeg \
     libgl1 \
     libglib2.0-0 \
   && ln -sf /usr/bin/python3.11 /usr/bin/python \
@@ -46,11 +48,15 @@ RUN chmod +x /start.sh /restore_snapshot.sh /download_models.sh
 # Restore custom nodes using YOUR snapshot script.
 RUN /restore_snapshot.sh
 
-# CRITICAL STEP: Install Python dependencies for the restored nodes.
+# *** FIX 2: More robust dependency installation loop ***
+# This finds and installs requirements for ALL custom nodes, not just one.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    if [ -f /comfyui/custom_nodes/ComfyUI-GGUF-Tools/requirements.txt ]; then \
-        pip install -r /comfyui/custom_nodes/ComfyUI-GGUF-Tools/requirements.txt; \
-    fi
+    for dir in /comfyui/custom_nodes/*/; do \
+        if [ -f "${dir}requirements.txt" ]; then \
+            echo "Installing dependencies for $(basename "$dir")" && \
+            pip install -r "${dir}requirements.txt"; \
+        fi; \
+    done
 
 # -----------------------------------------------------------------------------
 # Set the preload hook to run our new downloader script at container start.
