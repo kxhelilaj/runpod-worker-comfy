@@ -30,7 +30,7 @@ download_file "https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/resolve/
 download_file "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors" "/comfyui/models/vae/nativewan/wan_2.1_vae.safetensors"
 
 # --- UNET GGUF ---
-download_file "https://huggingface.co/city96/Wan2.1-I2V-14B-720P-gguf/resolve/main/wan2.1-i2v-14b-720p-Q3_K_M.gguf" "/comfyui/models/unets/wan2.1-i2v-14b-720p-Q3_K_M.gguf"
+download_file "https://huggingface.co/city96/Wan2.1-I2V-14B-720P-gguf/resolve/main/wan2.1-i2v-14b-720p-Q3_K_M.gguf" "/comfyui/models/unet/wan2.1-i2v-14b-720p-Q3_K_M.gguf"
 
 # --- CLIP GGUF ---
 download_file "https://huggingface.co/city96/umt5-xxl-encoder-gguf/resolve/main/umt5-xxl-encoder-Q8_0.gguf" "/comfyui/models/clip/native/umt5-xxl-encoder-Q8_0.gguf"
