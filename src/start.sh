@@ -3,7 +3,9 @@ set -e
 
 # Use libtcmalloc for better memory management
 TCMALLOC="$(ldconfig -p | grep -Po "libtcmalloc.so.\d" | head -n 1)"
-export LD_PRELOAD="${TCMALLOC}"
+export LD_PRELOAD=$(ldconfig -p | grep -Po "libtcmalloc.so.\d" | head -n1)
+
+/download_models.sh
 
 # -----------------------------------------------------------------------------
 # Start services
