@@ -53,9 +53,11 @@ RUN chmod +x /start.sh /restore_snapshot.sh
 RUN /restore_snapshot.sh
 
 # --- Install all custom node requirements ---
-RUN for dir in /comfyui/custom_nodes/*; do \
-      [ -f "$dir/requirements.txt" ] && pip install -r "$dir/requirements.txt"; \
-    done
+RUN if [ -d /comfyui/custom_nodes ]; then \
+      for dir in /comfyui/custom_nodes/*; do \
+        [ -f "$dir/requirements.txt" ] && pip install -r "$dir/requirements.txt"; \
+      done \
+    ; fi
 
 # --- Copy models from downloader ---
 COPY --from=downloader /comfyui/models /comfyui/models
