@@ -10,7 +10,7 @@ from io import BytesIO
 
 COMFY_HOST = "127.0.0.1:8188"
 COMFY_POLLING_INTERVAL_MS = int(os.environ.get("COMFY_POLLING_INTERVAL_MS", 250))
-COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 500))
+COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 3600))
 REFRESH_WORKER = os.environ.get("REFRESH_WORKER", "false").lower() == "true"
 
 def validate_input(job_input):
